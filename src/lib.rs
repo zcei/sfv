@@ -48,9 +48,10 @@ use sfv::*;
 
 let dict_header = "u=2, n=(* foo 2)";
     let dict = Parser::parse_dictionary(dict_header.as_bytes()).unwrap();
+    let key = Key::from_str("u").unwrap();
 
     // Case 1 - handling value if it's an Item of Integer type
-    let u_val = match dict.get("u") {
+    let u_val = match dict.get(&key) {
         Some(ListEntry::Item(item)) => item.bare_item.as_int(),
         _ => None,
     };
@@ -60,7 +61,7 @@ let dict_header = "u=2, n=(* foo 2)";
     }
 
     // Case 2 - matching on all possible types
-    match dict.get("u") {
+    match dict.get(&key) {
         Some(ListEntry::Item(item)) => match &item.bare_item {
             BareItem::Token(val) => {
                 // do something if it's a Token
@@ -117,7 +118,7 @@ use rust_decimal::Decimal;
 # fn main() -> Result<(), &'static str> {
 let mut params = Parameters::new();
 let decimal = Decimal::from_f64(13.45655).unwrap();
-params.insert("key".into(), BareItem::new_decimal(decimal)?);
+params.insert("key".parse()?, BareItem::new_decimal(decimal)?);
 let int_item = Item::with_params(BareItem::new_integer(99_i64)?, params);
 assert_eq!(int_item.serialize_value().unwrap(), "99;key=13.457");
 # Ok(())
@@ -138,12 +139,12 @@ let str_item = Item::new(BareItem::new_string("foo")?);
 
 // Creates InnerList members.
 let mut int_item_params = Parameters::new();
-int_item_params.insert("key".into(), BareItem::new_boolean(false)?);
+int_item_params.insert("key".parse()?, BareItem::new_boolean(false)?);
 let int_item = Item::with_params(BareItem::new_integer(99_i64)?, int_item_params);
 
 // Creates InnerList.
 let mut inner_list_params = Parameters::new();
-inner_list_params.insert("bar".into(), BareItem::new_boolean(true)?);
+inner_list_params.insert("bar".parse()?, BareItem::new_boolean(true)?);
 let inner_list = InnerList::with_params(vec![int_item, str_item], inner_list_params);
 
 
@@ -169,9 +170,9 @@ let member_value2 = Item::new(BareItem::new_boolean(true)?);
 let member_value3 = Item::new(BareItem::new_boolean(false)?);
 
 let mut dict = Dictionary::new();
-dict.insert("key1".into(), member_value1.into());
-dict.insert("key2".into(), member_value2.into());
-dict.insert("key3".into(), member_value3.into());
+dict.insert("key1".parse()?, member_value1.into());
+dict.insert("key2".parse()?, member_value2.into());
+dict.insert("key3".parse()?, member_value3.into());
 
 assert_eq!(
     dict.serialize_value().unwrap(),
@@ -194,7 +195,12 @@ mod utils;
 mod test_parser;
 #[cfg(test)]
 mod test_serializer;
+#[cfg(test)]
+use std::error::Error;
 
+use std::ops::Deref;
+
+use bare_item::ValidateValue;
 use indexmap::IndexMap;
 
 pub use rust_decimal::prelude::{FromPrimitive, FromStr};
@@ -237,12 +243,66 @@ impl Item {
     }
 }
 
+/// Represents a key for use in `Parameters` and `Dictionary` type structured field value.
+///
+/// The ABNF for a key is:
+/// ```abnf,ignore,no_run
+/// key = ( lcalpha / "*" )
+///      *( lcalpha / DIGIT / "_" / "-" / "." / "*" )
+/// ```
+#[derive(Debug, Eq, Hash, PartialEq, Clone)]
+pub struct Key(pub(crate) String);
+
+impl FromStr for Key {
+    type Err = &'static str;
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        let value = Self::validate(value)?;
+        Ok(Key(value.to_owned()))
+    }
+}
+
+impl<'a> ValidateValue<'a, &'a str> for Key {
+    fn validate(value: &'a str) -> SFVResult<&'a str> {
+        let disallowed_chars =
+            |c: char| !(c.is_ascii_lowercase() || c.is_ascii_digit() || "_-*.".contains(c));
+
+        if value.chars().any(disallowed_chars) {
+            return Err("validate_key: disallowed character in input");
+        }
+
+        if let Some(char) = value.chars().next() {
+            if !(char.is_ascii_lowercase() || char == '*') {
+                return Err("validate_key: first character is not lcalpha or '*'");
+            }
+        }
+
+        Ok(value)
+    }
+}
+
+impl Deref for Key {
+    type Target = String;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[test]
+fn create_key_errors() -> Result<(), Box<dyn Error>> {
+    let disallowed_key = Key::from_str("_key");
+    assert_eq!(
+        Err("validate_key: first character is not lcalpha or '*'"),
+        disallowed_key
+    );
+    Ok(())
+}
+
 /// Represents `Dictionary` type structured field value.
 // sf-dictionary  = dict-member *( OWS "," OWS dict-member )
 // dict-member    = member-name [ "=" member-value ]
 // member-name    = key
 // member-value   = sf-item / inner-list
-pub type Dictionary = IndexMap<String, ListEntry>;
+pub type Dictionary = IndexMap<Key, ListEntry>;
 
 /// Represents `List` type structured field value.
 // sf-list       = list-member *( OWS "," OWS list-member )
@@ -257,7 +317,7 @@ pub type List = Vec<ListEntry>;
 //                 *( lcalpha / DIGIT / "_" / "-" / "." / "*" )
 // lcalpha       = %x61-7A ; a-z
 // param-value   = bare-item
-pub type Parameters = IndexMap<String, BareItem>;
+pub type Parameters = IndexMap<Key, BareItem>;
 
 /// Represents a member of `List` or `Dictionary` structured field value.
 #[derive(Debug, PartialEq, Clone)]

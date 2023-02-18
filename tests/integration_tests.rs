@@ -1,4 +1,4 @@
-use sfv::{ListEntry, Parser};
+use sfv::{FromStr, Key, ListEntry, Parser};
 use std::error::Error;
 
 #[test]
@@ -16,13 +16,13 @@ fn test_report_to_header() -> Result<(), Box<dyn Error>> {
 
     let coep_endpoint = coep_parsed
         .params
-        .get("report-to")
+        .get(&Key::from_str("report-to")?)
         .ok_or("parameter does not exist")?
         .as_str()
         .ok_or("unexpected BareItem variant")?;
 
     let endpoints_parsed = Parser::parse_dictionary(endpoints)?;
-    if let Some(ListEntry::Item(item)) = endpoints_parsed.get(coep_endpoint) {
+    if let Some(ListEntry::Item(item)) = endpoints_parsed.get(&Key::from_str(coep_endpoint)?) {
         let item_value = item
             .bare_item
             .as_str()

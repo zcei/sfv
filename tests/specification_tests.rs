@@ -92,15 +92,10 @@ fn run_test_case(test_case: &TestData) -> Result<(), Box<dyn Error>> {
 fn run_test_case_serialization_only(test_case: &TestData) -> Result<(), Box<dyn Error>> {
     let expected_field_value = build_expected_field_value(test_case);
 
-    // TODO: must_fail has to always fail on creation
-    // As not all cases are moved yet, we take a two-step approach here:
-    // Either creation fails or serialization fails
+    // As this library only allows to build valid structured field values,
+    // must_fail has to always fail on creation
     if let Some(true) = test_case.must_fail {
-        if expected_field_value.is_err() {
-            return Ok(());
-        }
-        let actual_result = expected_field_value?.serialize();
-        assert!(actual_result.is_err());
+        assert!(expected_field_value.is_err());
         return Ok(());
     }
 
@@ -176,7 +171,7 @@ fn build_dict(expected_value: &Value) -> Result<Dictionary, Box<dyn Error>> {
             .ok_or("build_dict: expected dict member name is not a str")?;
         let member_value = &member[1];
         let item_or_inner_list: ListEntry = build_list_or_item(member_value)?;
-        dict.insert(member_name.to_owned(), item_or_inner_list);
+        dict.insert(member_name.parse()?, item_or_inner_list);
     }
     Ok(dict)
 }
@@ -305,7 +300,7 @@ fn build_parameters(params_value: &Value) -> Result<Parameters, Box<dyn Error>> 
             .ok_or("build_parameters: expected parameter name is not a str")?;
         let value = &member[1];
         let itm = build_bare_item(value)?;
-        parameters.insert(key.to_owned(), itm);
+        parameters.insert(key.parse()?, itm);
     }
     Ok(parameters)
 }

@@ -1,4 +1,4 @@
-use crate::{bare_item, utils};
+use crate::{bare_item, utils, Key};
 use crate::{
     BareItem, BareItemBoolean, BareItemByteSeq, BareItemDecimal, BareItemToken, Dictionary,
     FromStr, InnerList, Item, List, ListEntry, Num, Parameters, SFVResult,
@@ -86,7 +86,7 @@ impl ParseValue for Dictionary {
             if let Some('=') = input_chars.peek() {
                 input_chars.next();
                 let member = Parser::parse_list_entry(input_chars)?;
-                dict.insert(this_key, member);
+                dict.insert(Key(this_key), member);
             } else {
                 let value = true;
                 let params = Parser::parse_parameters(input_chars)?;
@@ -94,7 +94,7 @@ impl ParseValue for Dictionary {
                     bare_item: BareItem::Boolean(value.into()),
                     params,
                 };
-                dict.insert(this_key, member.into());
+                dict.insert(Key(this_key), member.into());
             }
 
             utils::consume_ows_chars(input_chars);
@@ -448,7 +448,7 @@ impl Parser {
                 }
                 _ => BareItem::Boolean(true.into()),
             };
-            params.insert(param_name, param_value);
+            params.insert(Key(param_name), param_value);
         }
 
         // If parameters already contains a name param_name (comparing character-for-character), overwrite its value.
