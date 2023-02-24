@@ -1,10 +1,23 @@
-use crate::{utils, SFVResult};
-use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
+mod boolean;
+mod byte_sequence;
+mod decimal;
+mod integer;
+mod string;
+mod token;
+
+use crate::SFVResult;
+use rust_decimal::prelude::FromPrimitive;
 use std::{
     convert::{TryFrom, TryInto},
-    fmt,
-    ops::Deref,
+    fmt::Debug,
 };
+
+pub use self::boolean::BareItemBoolean;
+pub use self::byte_sequence::BareItemByteSeq;
+pub use self::decimal::BareItemDecimal;
+pub use self::integer::BareItemInteger;
+pub use self::string::BareItemString;
+pub use self::token::BareItemToken;
 
 /// `BareItem` type is used to construct `Items` or `Parameters` values.
 #[derive(Debug, PartialEq, Clone)]
@@ -61,7 +74,7 @@ impl BareItem {
         Ok(BareItem::Decimal(value))
     }
 
-    /// Creates a `BareItem::Decimal` from a `rust_decimal::Decimal` input.
+    /// Creates a `BareItem::Integer` from a `i64` input.
     /// ```
     /// # use sfv::BareItem;
     /// # fn main() -> Result<(), &'static str> {
@@ -221,6 +234,21 @@ impl BareItem {
     }
 }
 
+impl BareItem {
+    pub(crate) fn write(&self, output: &mut String) -> SFVResult<()> {
+        match self {
+            BareItem::Integer(val) => BareItemInteger::serialize_ref(val, output),
+            BareItem::Decimal(val) => BareItemDecimal::serialize_ref(val, output),
+            BareItem::String(val) => BareItemString::serialize_ref(val, output),
+            BareItem::ByteSeq(val) => BareItemByteSeq::serialize_ref(val, output),
+            BareItem::Boolean(val) => BareItemBoolean::serialize_ref(**val, output),
+            BareItem::Token(val) => BareItemToken::serialize_ref(val, output),
+        };
+
+        Ok(())
+    }
+}
+
 impl TryFrom<i64> for BareItem {
     type Error = &'static str;
     /// Converts `i64` into `BareItem::Integer`.
@@ -315,280 +343,14 @@ impl TryFrom<bool> for BareItem {
     }
 }
 
-/// Decimals are numbers with an integer and a fractional component. The integer component has at most 12 digits; the fractional component has at most three digits.
-///
-/// The ABNF for decimals is:
-/// ```abnf,ignore,no_run
-/// sf-decimal  = ["-"] 1*12DIGIT "." 1*3DIGIT
-/// ```
-#[derive(Debug, PartialEq, Clone)]
-pub struct BareItemDecimal(pub(crate) rust_decimal::Decimal);
-
-impl TryFrom<rust_decimal::Decimal> for BareItemDecimal {
-    type Error = &'static str;
-    fn try_from(value: rust_decimal::Decimal) -> Result<Self, Self::Error> {
-        let validated = Self::validate(value)?;
-        Ok(BareItemDecimal(validated))
-    }
-}
-
-impl ValidateValue<'_, rust_decimal::Decimal> for BareItemDecimal {
-    fn validate(value: rust_decimal::Decimal) -> SFVResult<rust_decimal::Decimal> {
-        let fraction_length = 3;
-
-        let decimal = value.round_dp(fraction_length);
-        let int_comp = decimal.trunc();
-        let int_comp = int_comp
-            .abs()
-            .to_u64()
-            .ok_or("serialize_decimal: integer component > 12 digits")?;
-
-        if int_comp > 999_999_999_999_u64 {
-            return Err("serialize_decimal: integer component > 12 digits");
-        }
-
-        Ok(decimal)
-    }
-}
-
 /// Validates a bare item value and returns a new sanitized value
 /// or passes back ownership of the existing value in case the input needs no change.
 pub trait ValidateValue<'a, T> {
     fn validate(value: T) -> SFVResult<T>;
 }
 
-impl Deref for BareItemDecimal {
-    type Target = rust_decimal::Decimal;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl fmt::Display for BareItemDecimal {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-/// Integers have a range of -999,999,999,999,999 to 999,999,999,999,999 inclusive (i.e., up to fifteen digits, signed), for IEEE 754 compatibility.
-///
-/// The ABNF for Integers is:
-/// ```abnf,ignore,no_run
-/// sf-integer = ["-"] 1*15DIGIT
-/// ```
-#[derive(Debug, PartialEq, Clone)]
-pub struct BareItemInteger(pub(crate) i64);
-
-impl Deref for BareItemInteger {
-    type Target = i64;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl TryFrom<i64> for BareItemInteger {
-    type Error = &'static str;
-
-    fn try_from(value: i64) -> Result<Self, Self::Error> {
-        let value = Self::validate(value)?;
-        Ok(BareItemInteger(value))
-    }
-}
-
-impl ValidateValue<'_, i64> for BareItemInteger {
-    fn validate(value: i64) -> SFVResult<i64> {
-        let (min_int, max_int) = (-999_999_999_999_999_i64, 999_999_999_999_999_i64);
-
-        if !(min_int <= value && value <= max_int) {
-            return Err("serialize_integer: integer is out of range");
-        }
-
-        Ok(value)
-    }
-}
-
-impl fmt::Display for BareItemInteger {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-/// Strings are zero or more printable ASCII (RFC0020) characters (i.e., the range %x20 to %x7E). Note that this excludes tabs, newlines, carriage returns, etc.
-///
-/// The ABNF for Strings is:
-/// ```abnf,ignore,no_run
-/// sf-string = DQUOTE *chr DQUOTE
-/// chr       = unescaped / escaped
-/// unescaped = %x20-21 / %x23-5B / %x5D-7E
-/// escaped   = "\" ( DQUOTE / "\" )
-/// ```
-#[derive(Debug, PartialEq, Clone)]
-pub struct BareItemString(pub(crate) std::string::String);
-
-impl Deref for BareItemString {
-    type Target = String;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl TryFrom<String> for BareItemString {
-    type Error = &'static str;
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        let value = Self::validate(&value)?;
-        Ok(BareItemString(value.to_owned()))
-    }
-}
-
-impl TryFrom<&str> for BareItemString {
-    type Error = &'static str;
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let value = Self::validate(value)?;
-        Ok(BareItemString(value.to_owned()))
-    }
-}
-
-impl<'a> ValidateValue<'a, &'a str> for BareItemString {
-    fn validate(value: &'a str) -> SFVResult<&'a str> {
-        if !value.is_ascii() {
-            return Err("serialize_string: non-ascii character");
-        }
-
-        let vchar_or_sp = |char| char == '\x7f' || ('\x00'..='\x1f').contains(&char);
-        if value.chars().any(vchar_or_sp) {
-            return Err("serialize_string: not a visible character");
-        }
-
-        Ok(value)
-    }
-}
-
-impl fmt::Display for BareItemString {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-/// Byte Sequences can be conveyed in Structured Fields.
-///
-/// The ABNF for a Byte Sequence is:
-/// ```abnf,ignore,no_run
-/// sf-binary = ":" *(base64) ":"
-/// base64    = ALPHA / DIGIT / "+" / "/" / "="
-/// ```
-#[derive(Debug, PartialEq, Clone)]
-pub struct BareItemByteSeq(pub(crate) Vec<u8>);
-
-impl From<&[u8]> for BareItemByteSeq {
-    fn from(value: &[u8]) -> Self {
-        BareItemByteSeq(value.to_vec())
-    }
-}
-
-impl From<Vec<u8>> for BareItemByteSeq {
-    fn from(value: Vec<u8>) -> Self {
-        BareItemByteSeq(value)
-    }
-}
-
-impl Deref for BareItemByteSeq {
-    type Target = [u8];
-    fn deref(&self) -> &Self::Target {
-        self.0.as_slice()
-    }
-}
-
-/// Boolean values can be conveyed in Structured Fields.
-///
-/// The ABNF for a Boolean is:
-/// ```abnf,ignore,no_run
-/// sf-boolean = "?" boolean
-/// boolean    = "0" / "1"
-/// ```
-#[derive(Debug, PartialEq, Clone)]
-pub struct BareItemBoolean(pub(crate) bool);
-
-impl From<bool> for BareItemBoolean {
-    fn from(value: bool) -> Self {
-        BareItemBoolean(value)
-    }
-}
-
-impl Deref for BareItemBoolean {
-    type Target = bool;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl fmt::Display for BareItemBoolean {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-/// Tokens are short textual words; their abstract model is identical to their expression in the HTTP field value serialization.
-///
-/// The ABNF for Tokens is:
-/// ```abnf,ignore,no_run
-/// sf-token = ( ALPHA / "*" ) *( tchar / ":" / "/" )
-/// ```
-#[derive(Debug, PartialEq, Clone)]
-pub struct BareItemToken(pub(crate) String);
-
-impl Deref for BareItemToken {
-    type Target = String;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl TryFrom<String> for BareItemToken {
-    type Error = &'static str;
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        let value = Self::validate(&value)?;
-        Ok(BareItemToken(value.to_owned()))
-    }
-}
-
-impl TryFrom<&str> for BareItemToken {
-    type Error = &'static str;
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let value = Self::validate(value)?;
-        Ok(BareItemToken(value.to_owned()))
-    }
-}
-
-impl<'a> ValidateValue<'a, &'a str> for BareItemToken {
-    fn validate(value: &'a str) -> SFVResult<&'a str> {
-        if !value.is_ascii() {
-            return Err("serialize_string: non-ascii character");
-        }
-
-        let mut chars = value.chars();
-        if let Some(char) = chars.next() {
-            if !(char.is_ascii_alphabetic() || char == '*') {
-                return Err("serialise_token: first character is not ALPHA or '*'");
-            }
-        }
-
-        if chars
-            .clone()
-            .any(|c| !(utils::is_tchar(c) || c == ':' || c == '/'))
-        {
-            return Err("serialise_token: disallowed character");
-        }
-
-        Ok(value)
-    }
-}
-
-impl fmt::Display for BareItemToken {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
+pub trait SerializeBareItem<T> {
+    fn serialize_ref(value: T, output: &mut String);
 }
 
 #[cfg(test)]

@@ -200,7 +200,7 @@ use indexmap::IndexMap;
 pub use rust_decimal::prelude::{FromPrimitive, FromStr};
 
 pub use parser::{ParseMore, ParseValue, Parser};
-pub use ref_serializer::{RefDictSerializer, RefItemSerializer, RefListSerializer};
+pub use ref_serializer::{RefBareItem, RefDictSerializer, RefItemSerializer, RefListSerializer};
 pub use serializer::SerializeValue;
 
 pub use bare_item::{
@@ -310,29 +310,4 @@ impl InnerList {
 pub(crate) enum Num {
     Decimal(BareItemDecimal),
     Integer(i64),
-}
-
-/// Similar to `BareItem`, but used to serialize values via `RefItemSerializer`, `RefListSerializer`, `RefDictSerializer`.
-#[derive(Debug, PartialEq, Clone)]
-pub enum RefBareItem<'a> {
-    Integer(i64),
-    Decimal(rust_decimal::Decimal),
-    String(&'a str),
-    ByteSeq(&'a [u8]),
-    Boolean(bool),
-    Token(&'a str),
-}
-
-impl BareItem {
-    /// Converts `BareItem` into `RefBareItem`.
-    fn to_ref_bare_item(&self) -> RefBareItem {
-        match self {
-            BareItem::Integer(val) => RefBareItem::Integer(**val),
-            BareItem::Decimal(val) => RefBareItem::Decimal(**val),
-            BareItem::String(val) => RefBareItem::String(val),
-            BareItem::ByteSeq(val) => RefBareItem::ByteSeq(val),
-            BareItem::Boolean(val) => RefBareItem::Boolean(**val),
-            BareItem::Token(val) => RefBareItem::Token(&val),
-        }
-    }
 }

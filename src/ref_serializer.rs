@@ -1,6 +1,59 @@
+use crate::bare_item::*;
 use crate::serializer::Serializer;
-use crate::{RefBareItem, SFVResult};
+use crate::{BareItem, SFVResult};
 use std::marker::PhantomData;
+
+/// Similar to `BareItem`, but used to serialize values via `RefItemSerializer`, `RefListSerializer`, `RefDictSerializer`.
+#[derive(Debug, PartialEq, Clone)]
+pub enum RefBareItem<'a> {
+    Integer(i64),
+    Decimal(rust_decimal::Decimal),
+    String(&'a str),
+    ByteSeq(&'a [u8]),
+    Boolean(bool),
+    Token(&'a str),
+}
+
+impl<'a> RefBareItem<'a> {
+    pub(crate) fn write(&self, output: &mut String) -> SFVResult<()> {
+        match self {
+            RefBareItem::Boolean(value) => BareItemBoolean::serialize_ref(*value, output),
+            RefBareItem::String(value) => {
+                let validated = BareItemString::validate(value)?;
+                BareItemString::serialize_ref(validated, output)
+            }
+            RefBareItem::ByteSeq(value) => BareItemByteSeq::serialize_ref(value, output),
+            RefBareItem::Token(value) => {
+                let validated = BareItemToken::validate(value)?;
+                BareItemToken::serialize_ref(validated, output)
+            }
+            RefBareItem::Integer(value) => {
+                let validated = BareItemInteger::validate(*value)?;
+                BareItemInteger::serialize_ref(&validated, output)
+            }
+            RefBareItem::Decimal(value) => {
+                let validated = BareItemDecimal::validate(*value)?;
+                BareItemDecimal::serialize_ref(&validated, output)
+            }
+        };
+
+        Ok(())
+    }
+}
+
+impl BareItem {
+    /// Converts `BareItem` into `RefBareItem`.
+    pub(crate) fn to_ref_bare_item(&self) -> RefBareItem {
+        match self {
+            BareItem::Integer(val) => RefBareItem::Integer(**val),
+            BareItem::Decimal(val) => RefBareItem::Decimal(**val),
+            BareItem::String(val) => RefBareItem::String(val),
+            BareItem::ByteSeq(val) => RefBareItem::ByteSeq(val),
+            BareItem::Boolean(val) => RefBareItem::Boolean(**val),
+            BareItem::Token(val) => RefBareItem::Token(&val),
+        }
+    }
+}
 
 /// Serializes `Item` field value components incrementally.
 /// ```

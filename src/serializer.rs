@@ -1,9 +1,5 @@
-use crate::bare_item::ValidateValue;
-use crate::{
-    BareItem, Dictionary, InnerList, Item, List, ListEntry, Parameters, RefBareItem, SFVResult,
-};
-use crate::{BareItemDecimal, BareItemInteger, BareItemString, BareItemToken};
-use data_encoding::BASE64;
+use crate::ref_serializer::RefBareItem;
+use crate::{BareItem, Dictionary, InnerList, Item, List, ListEntry, Parameters, SFVResult};
 
 /// Serializes structured field value into String.
 pub trait SerializeValue {
@@ -54,7 +50,7 @@ impl Serializer {
     pub(crate) fn serialize_item(input_item: &Item, output: &mut String) -> SFVResult<()> {
         // https://httpwg.org/specs/rfc8941.html#ser-item
 
-        Self::serialize_bare_item(&input_item.bare_item, output)?;
+        input_item.bare_item.write(output)?;
         Self::serialize_parameters(&input_item.params, output)?;
         Ok(())
     }
@@ -147,23 +143,14 @@ impl Serializer {
         output: &mut String,
     ) -> SFVResult<()> {
         // https://httpwg.org/specs/rfc8941.html#ser-bare-item
-
-        let ref_bare_item = input_bare_item.to_ref_bare_item();
-        Self::serialize_ref_bare_item(&ref_bare_item, output)
+        input_bare_item.write(output)
     }
 
     pub(crate) fn serialize_ref_bare_item(
         value: &RefBareItem,
         output: &mut String,
     ) -> SFVResult<()> {
-        match value {
-            RefBareItem::Boolean(value) => Self::serialize_bool(*value, output)?,
-            RefBareItem::String(value) => Self::serialize_string(value, output)?,
-            RefBareItem::ByteSeq(value) => Self::serialize_byte_sequence(value, output)?,
-            RefBareItem::Token(value) => Self::serialize_token(value, output)?,
-            RefBareItem::Integer(value) => Self::serialize_integer(*value, output)?,
-            RefBareItem::Decimal(value) => Self::serialize_decimal(*value, output)?,
-        };
+        value.write(output)?;
         Ok(())
     }
 
@@ -210,71 +197,6 @@ impl Serializer {
             }
         }
         output.push_str(input_key);
-        Ok(())
-    }
-
-    pub(crate) fn serialize_integer(value: i64, output: &mut String) -> SFVResult<()> {
-        // https://httpwg.org/specs/rfc8941.html#ser-integer
-        let value = BareItemInteger::validate(value)?;
-        output.push_str(&value.to_string());
-        Ok(())
-    }
-
-    pub(crate) fn serialize_decimal(
-        value: rust_decimal::Decimal,
-        output: &mut String,
-    ) -> SFVResult<()> {
-        // https://httpwg.org/specs/rfc8941.html#ser-decimal
-        let decimal = BareItemDecimal::validate(value)?;
-
-        if decimal.fract().is_zero() {
-            output.push_str(&format!("{:.1}", &decimal));
-        } else {
-            output.push_str(&decimal.to_string());
-        }
-
-        Ok(())
-    }
-
-    pub(crate) fn serialize_string(value: &str, output: &mut String) -> SFVResult<()> {
-        // https://httpwg.org/specs/rfc8941.html#ser-integer
-        let value = BareItemString::validate(value)?;
-
-        output.push('\"');
-        for char in value.chars() {
-            if char == '\\' || char == '\"' {
-                output.push('\\');
-            }
-            output.push(char);
-        }
-        output.push('\"');
-
-        Ok(())
-    }
-
-    pub(crate) fn serialize_token(value: &str, output: &mut String) -> SFVResult<()> {
-        // https://httpwg.org/specs/rfc8941.html#ser-token
-        let value = BareItemToken::validate(value)?;
-
-        output.push_str(value);
-        Ok(())
-    }
-
-    pub(crate) fn serialize_byte_sequence(value: &[u8], output: &mut String) -> SFVResult<()> {
-        // https://httpwg.org/specs/rfc8941.html#ser-binary
-
-        output.push(':');
-        let encoded = BASE64.encode(value.as_ref());
-        output.push_str(&encoded);
-        output.push(':');
-        Ok(())
-    }
-
-    pub(crate) fn serialize_bool(value: bool, output: &mut String) -> SFVResult<()> {
-        // https://httpwg.org/specs/rfc8941.html#ser-boolean
-
-        let val = if value { "?1" } else { "?0" };
-        output.push_str(val);
         Ok(())
     }
 }

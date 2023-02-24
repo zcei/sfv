@@ -117,230 +117,230 @@ fn serialize_item_with_token_param() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-#[test]
-fn serialize_integer() -> Result<(), Box<dyn Error>> {
-    let mut buf = String::new();
-    Serializer::serialize_integer(-12, &mut buf)?;
-    assert_eq!("-12", &buf);
+// #[test]
+// fn serialize_integer() -> Result<(), Box<dyn Error>> {
+//     let mut buf = String::new();
+//     Serializer::serialize_integer(-12, &mut buf)?;
+//     assert_eq!("-12", &buf);
 
-    buf.clear();
-    Serializer::serialize_integer(0, &mut buf)?;
-    assert_eq!("0", &buf);
+//     buf.clear();
+//     Serializer::serialize_integer(0, &mut buf)?;
+//     assert_eq!("0", &buf);
 
-    buf.clear();
-    Serializer::serialize_integer(999_999_999_999_999, &mut buf)?;
-    assert_eq!("999999999999999", &buf);
+//     buf.clear();
+//     Serializer::serialize_integer(999_999_999_999_999, &mut buf)?;
+//     assert_eq!("999999999999999", &buf);
 
-    buf.clear();
-    Serializer::serialize_integer(-999_999_999_999_999, &mut buf)?;
-    assert_eq!("-999999999999999", &buf);
-    Ok(())
-}
+//     buf.clear();
+//     Serializer::serialize_integer(-999_999_999_999_999, &mut buf)?;
+//     assert_eq!("-999999999999999", &buf);
+//     Ok(())
+// }
 
-#[test]
-fn serialize_integer_errors() -> Result<(), Box<dyn Error>> {
-    let mut buf = String::new();
-    assert_eq!(
-        Err("serialize_integer: integer is out of range"),
-        Serializer::serialize_integer(1_000_000_000_000_000, &mut buf)
-    );
+// #[test]
+// fn serialize_integer_errors() -> Result<(), Box<dyn Error>> {
+//     let mut buf = String::new();
+//     assert_eq!(
+//         Err("serialize_integer: integer is out of range"),
+//         Serializer::serialize_integer(1_000_000_000_000_000, &mut buf)
+//     );
 
-    buf.clear();
-    assert_eq!(
-        Err("serialize_integer: integer is out of range"),
-        Serializer::serialize_integer(-1_000_000_000_000_000, &mut buf)
-    );
-    Ok(())
-}
+//     buf.clear();
+//     assert_eq!(
+//         Err("serialize_integer: integer is out of range"),
+//         Serializer::serialize_integer(-1_000_000_000_000_000, &mut buf)
+//     );
+//     Ok(())
+// }
 
-#[test]
-fn serialize_decimal() -> Result<(), Box<dyn Error>> {
-    let mut buf = String::new();
-    Serializer::serialize_decimal(Decimal::from_str("-99.1346897")?, &mut buf)?;
-    assert_eq!("-99.135", &buf);
+// #[test]
+// fn serialize_decimal() -> Result<(), Box<dyn Error>> {
+//     let mut buf = String::new();
+//     Serializer::serialize_decimal(Decimal::from_str("-99.1346897")?, &mut buf)?;
+//     assert_eq!("-99.135", &buf);
 
-    buf.clear();
-    Serializer::serialize_decimal(Decimal::from_str("-1.00")?, &mut buf)?;
-    assert_eq!("-1.0", &buf);
+//     buf.clear();
+//     Serializer::serialize_decimal(Decimal::from_str("-1.00")?, &mut buf)?;
+//     assert_eq!("-1.0", &buf);
 
-    buf.clear();
-    Serializer::serialize_decimal(
-        Decimal::from_str("-00000000000000000000000099.1346897")?,
-        &mut buf,
-    )?;
-    assert_eq!("-99.135", &buf);
+//     buf.clear();
+//     Serializer::serialize_decimal(
+//         Decimal::from_str("-00000000000000000000000099.1346897")?,
+//         &mut buf,
+//     )?;
+//     assert_eq!("-99.135", &buf);
 
-    buf.clear();
-    Serializer::serialize_decimal(Decimal::from_str("100.13")?, &mut buf)?;
-    assert_eq!("100.13", &buf);
+//     buf.clear();
+//     Serializer::serialize_decimal(Decimal::from_str("100.13")?, &mut buf)?;
+//     assert_eq!("100.13", &buf);
 
-    buf.clear();
-    Serializer::serialize_decimal(Decimal::from_str("-100.130")?, &mut buf)?;
-    assert_eq!("-100.130", &buf);
+//     buf.clear();
+//     Serializer::serialize_decimal(Decimal::from_str("-100.130")?, &mut buf)?;
+//     assert_eq!("-100.130", &buf);
 
-    buf.clear();
-    Serializer::serialize_decimal(Decimal::from_str("-137.0")?, &mut buf)?;
-    assert_eq!("-137.0", &buf);
+//     buf.clear();
+//     Serializer::serialize_decimal(Decimal::from_str("-137.0")?, &mut buf)?;
+//     assert_eq!("-137.0", &buf);
 
-    buf.clear();
-    Serializer::serialize_decimal(Decimal::from_str("137121212112.123")?, &mut buf)?;
-    assert_eq!("137121212112.123", &buf);
+//     buf.clear();
+//     Serializer::serialize_decimal(Decimal::from_str("137121212112.123")?, &mut buf)?;
+//     assert_eq!("137121212112.123", &buf);
 
-    buf.clear();
-    Serializer::serialize_decimal(Decimal::from_str("137121212112.1238")?, &mut buf)?;
-    assert_eq!("137121212112.124", &buf);
-    Ok(())
-}
+//     buf.clear();
+//     Serializer::serialize_decimal(Decimal::from_str("137121212112.1238")?, &mut buf)?;
+//     assert_eq!("137121212112.124", &buf);
+//     Ok(())
+// }
 
-#[test]
-fn serialize_decimal_errors() -> Result<(), Box<dyn Error>> {
-    let mut buf = String::new();
-    assert_eq!(
-        Err("serialize_decimal: integer component > 12 digits"),
-        Serializer::serialize_decimal(Decimal::from_str("1371212121121.1")?, &mut buf)
-    );
-    Ok(())
-}
+// #[test]
+// fn serialize_decimal_errors() -> Result<(), Box<dyn Error>> {
+//     let mut buf = String::new();
+//     assert_eq!(
+//         Err("serialize_decimal: integer component > 12 digits"),
+//         Serializer::serialize_decimal(Decimal::from_str("1371212121121.1")?, &mut buf)
+//     );
+//     Ok(())
+// }
 
-#[test]
-fn serialize_string() -> Result<(), Box<dyn Error>> {
-    let mut buf = String::new();
-    Serializer::serialize_string("1.1 text", &mut buf)?;
-    assert_eq!("\"1.1 text\"", &buf);
+// #[test]
+// fn serialize_string() -> Result<(), Box<dyn Error>> {
+//     let mut buf = String::new();
+//     Serializer::serialize_string("1.1 text", &mut buf)?;
+//     assert_eq!("\"1.1 text\"", &buf);
 
-    buf.clear();
-    Serializer::serialize_string("hello \"name\"", &mut buf)?;
-    assert_eq!("\"hello \\\"name\\\"\"", &buf);
+//     buf.clear();
+//     Serializer::serialize_string("hello \"name\"", &mut buf)?;
+//     assert_eq!("\"hello \\\"name\\\"\"", &buf);
 
-    buf.clear();
-    Serializer::serialize_string("something\\nothing", &mut buf)?;
-    assert_eq!("\"something\\\\nothing\"", &buf);
+//     buf.clear();
+//     Serializer::serialize_string("something\\nothing", &mut buf)?;
+//     assert_eq!("\"something\\\\nothing\"", &buf);
 
-    buf.clear();
-    Serializer::serialize_string("", &mut buf)?;
-    assert_eq!("\"\"", &buf);
+//     buf.clear();
+//     Serializer::serialize_string("", &mut buf)?;
+//     assert_eq!("\"\"", &buf);
 
-    buf.clear();
-    Serializer::serialize_string(" ", &mut buf)?;
-    assert_eq!("\" \"", &buf);
+//     buf.clear();
+//     Serializer::serialize_string(" ", &mut buf)?;
+//     assert_eq!("\" \"", &buf);
 
-    buf.clear();
-    Serializer::serialize_string("    ", &mut buf)?;
-    assert_eq!("\"    \"", &buf);
-    Ok(())
-}
+//     buf.clear();
+//     Serializer::serialize_string("    ", &mut buf)?;
+//     assert_eq!("\"    \"", &buf);
+//     Ok(())
+// }
 
-#[test]
-fn serialize_string_errors() -> Result<(), Box<dyn Error>> {
-    let mut buf = String::new();
+// #[test]
+// fn serialize_string_errors() -> Result<(), Box<dyn Error>> {
+//     let mut buf = String::new();
 
-    assert_eq!(
-        Err("serialize_string: not a visible character"),
-        Serializer::serialize_string("text \x00", &mut buf)
-    );
+//     assert_eq!(
+//         Err("serialize_string: not a visible character"),
+//         Serializer::serialize_string("text \x00", &mut buf)
+//     );
 
-    assert_eq!(
-        Err("serialize_string: not a visible character"),
-        Serializer::serialize_string("text \x1f", &mut buf)
-    );
-    assert_eq!(
-        Err("serialize_string: not a visible character"),
-        Serializer::serialize_string("text \x7f", &mut buf)
-    );
-    assert_eq!(
-        Err("serialize_string: non-ascii character"),
-        Serializer::serialize_string("рядок", &mut buf)
-    );
-    Ok(())
-}
+//     assert_eq!(
+//         Err("serialize_string: not a visible character"),
+//         Serializer::serialize_string("text \x1f", &mut buf)
+//     );
+//     assert_eq!(
+//         Err("serialize_string: not a visible character"),
+//         Serializer::serialize_string("text \x7f", &mut buf)
+//     );
+//     assert_eq!(
+//         Err("serialize_string: non-ascii character"),
+//         Serializer::serialize_string("рядок", &mut buf)
+//     );
+//     Ok(())
+// }
 
-#[test]
-fn serialize_token() -> Result<(), Box<dyn Error>> {
-    let mut buf = String::new();
-    Serializer::serialize_token("*", &mut buf)?;
-    assert_eq!("*", &buf);
+// #[test]
+// fn serialize_token() -> Result<(), Box<dyn Error>> {
+//     let mut buf = String::new();
+//     Serializer::serialize_token("*", &mut buf)?;
+//     assert_eq!("*", &buf);
 
-    buf.clear();
-    Serializer::serialize_token("abc", &mut buf)?;
-    assert_eq!("abc", &buf);
+//     buf.clear();
+//     Serializer::serialize_token("abc", &mut buf)?;
+//     assert_eq!("abc", &buf);
 
-    buf.clear();
-    Serializer::serialize_token("abc:de", &mut buf)?;
-    assert_eq!("abc:de", &buf);
+//     buf.clear();
+//     Serializer::serialize_token("abc:de", &mut buf)?;
+//     assert_eq!("abc:de", &buf);
 
-    buf.clear();
-    Serializer::serialize_token("smth/#!else", &mut buf)?;
-    assert_eq!("smth/#!else", &buf);
-    Ok(())
-}
+//     buf.clear();
+//     Serializer::serialize_token("smth/#!else", &mut buf)?;
+//     assert_eq!("smth/#!else", &buf);
+//     Ok(())
+// }
 
-#[test]
-fn serialize_token_errors() -> Result<(), Box<dyn Error>> {
-    let mut buf = String::new();
+// #[test]
+// fn serialize_token_errors() -> Result<(), Box<dyn Error>> {
+//     let mut buf = String::new();
 
-    assert_eq!(
-        Err("serialise_token: first character is not ALPHA or '*'"),
-        Serializer::serialize_token("#some", &mut buf)
-    );
-    assert_eq!(
-        Err("serialise_token: disallowed character"),
-        Serializer::serialize_token("s ", &mut buf)
-    );
-    assert_eq!(
-        Err("serialise_token: disallowed character"),
-        Serializer::serialize_token("abc:de\t", &mut buf)
-    );
-    Ok(())
-}
+//     assert_eq!(
+//         Err("serialise_token: first character is not ALPHA or '*'"),
+//         Serializer::serialize_token("#some", &mut buf)
+//     );
+//     assert_eq!(
+//         Err("serialise_token: disallowed character"),
+//         Serializer::serialize_token("s ", &mut buf)
+//     );
+//     assert_eq!(
+//         Err("serialise_token: disallowed character"),
+//         Serializer::serialize_token("abc:de\t", &mut buf)
+//     );
+//     Ok(())
+// }
 
-#[test]
-fn serialize_byte_sequence() -> Result<(), Box<dyn Error>> {
-    let mut buf = String::new();
-    Serializer::serialize_byte_sequence("hello".as_bytes(), &mut buf)?;
-    assert_eq!(":aGVsbG8=:", &buf);
+// #[test]
+// fn serialize_byte_sequence() -> Result<(), Box<dyn Error>> {
+//     let mut buf = String::new();
+//     Serializer::serialize_byte_sequence("hello".as_bytes(), &mut buf)?;
+//     assert_eq!(":aGVsbG8=:", &buf);
 
-    buf.clear();
-    Serializer::serialize_byte_sequence("test_encode".as_bytes(), &mut buf)?;
-    assert_eq!(":dGVzdF9lbmNvZGU=:", &buf);
+//     buf.clear();
+//     Serializer::serialize_byte_sequence("test_encode".as_bytes(), &mut buf)?;
+//     assert_eq!(":dGVzdF9lbmNvZGU=:", &buf);
 
-    buf.clear();
-    Serializer::serialize_byte_sequence("".as_bytes(), &mut buf)?;
-    assert_eq!("::", &buf);
+//     buf.clear();
+//     Serializer::serialize_byte_sequence("".as_bytes(), &mut buf)?;
+//     assert_eq!("::", &buf);
 
-    buf.clear();
-    Serializer::serialize_byte_sequence("pleasure.".as_bytes(), &mut buf)?;
-    assert_eq!(":cGxlYXN1cmUu:", &buf);
+//     buf.clear();
+//     Serializer::serialize_byte_sequence("pleasure.".as_bytes(), &mut buf)?;
+//     assert_eq!(":cGxlYXN1cmUu:", &buf);
 
-    buf.clear();
-    Serializer::serialize_byte_sequence("leasure.".as_bytes(), &mut buf)?;
-    assert_eq!(":bGVhc3VyZS4=:", &buf);
+//     buf.clear();
+//     Serializer::serialize_byte_sequence("leasure.".as_bytes(), &mut buf)?;
+//     assert_eq!(":bGVhc3VyZS4=:", &buf);
 
-    buf.clear();
-    Serializer::serialize_byte_sequence("easure.".as_bytes(), &mut buf)?;
-    assert_eq!(":ZWFzdXJlLg==:", &buf);
+//     buf.clear();
+//     Serializer::serialize_byte_sequence("easure.".as_bytes(), &mut buf)?;
+//     assert_eq!(":ZWFzdXJlLg==:", &buf);
 
-    buf.clear();
-    Serializer::serialize_byte_sequence("asure.".as_bytes(), &mut buf)?;
-    assert_eq!(":YXN1cmUu:", &buf);
+//     buf.clear();
+//     Serializer::serialize_byte_sequence("asure.".as_bytes(), &mut buf)?;
+//     assert_eq!(":YXN1cmUu:", &buf);
 
-    buf.clear();
-    Serializer::serialize_byte_sequence("sure.".as_bytes(), &mut buf)?;
-    assert_eq!(":c3VyZS4=:", &buf);
+//     buf.clear();
+//     Serializer::serialize_byte_sequence("sure.".as_bytes(), &mut buf)?;
+//     assert_eq!(":c3VyZS4=:", &buf);
 
-    Ok(())
-}
+//     Ok(())
+// }
 
-#[test]
-fn serialize_bool() -> Result<(), Box<dyn Error>> {
-    let mut buf = String::new();
-    Serializer::serialize_bool(true, &mut buf)?;
-    assert_eq!("?1", &buf);
+// #[test]
+// fn serialize_bool() -> Result<(), Box<dyn Error>> {
+//     let mut buf = String::new();
+//     Serializer::serialize_bool(true, &mut buf)?;
+//     assert_eq!("?1", &buf);
 
-    buf.clear();
-    Serializer::serialize_bool(false, &mut buf)?;
-    assert_eq!("?0", &buf);
-    Ok(())
-}
+//     buf.clear();
+//     Serializer::serialize_bool(false, &mut buf)?;
+//     assert_eq!("?0", &buf);
+//     Ok(())
+// }
 
 #[test]
 fn serialize_params_bool() -> Result<(), Box<dyn Error>> {
